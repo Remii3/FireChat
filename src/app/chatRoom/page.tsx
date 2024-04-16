@@ -1,7 +1,7 @@
 import ChatWindow from "@/components/ChatWindow";
 import FriendsListSection from "@/components/FriendsListSection";
 import { auth, firestore } from "@/lib/firebase";
-import { User } from "@/types/types";
+import { User } from "@/types/user";
 import { useQuery } from "@tanstack/react-query";
 import { User as AuthUser } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";

@@ -1,14 +1,14 @@
-import { useInView } from "react-intersection-observer";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { UsersListTypes } from "@/types/user";
+import { Loader2 } from "lucide-react";
+import React, { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import UserCard from "./UserCard";
 
-function AllUsers({
-  usersPages,
+function FriendsUsers({
+  fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
-  fetchNextPage,
+  usersPages,
   clickHandler,
 }: UsersListTypes) {
   const { ref, inView } = useInView();
@@ -23,14 +23,14 @@ function AllUsers({
     <div>
       {usersPages &&
         usersPages.pages.map((users) =>
-          users.usersData.map((user, index) => {
+          users.usersData.map((user, id) => {
             return (
               <UserCard
-                key={user.uid}
+                key={user.id}
                 user={user}
                 clickHandler={clickHandler}
                 lastItemRef={
-                  users.usersData.length === index + 1 ? ref : undefined
+                  users.usersData.length === id + 1 ? ref : undefined
                 }
               />
             );
@@ -41,4 +41,4 @@ function AllUsers({
   );
 }
 
-export default AllUsers;
+export default FriendsUsers;
