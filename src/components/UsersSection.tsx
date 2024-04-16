@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import {
   useInfiniteQuery,
@@ -21,12 +21,9 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, firestore } from "@/lib/firebase";
-import { Button } from "./ui/button";
 import { InfiniteUsers, SidebarTypes, User } from "@/types/user";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar } from "./ui/avatar";
 import { Menu } from "lucide-react";
-import { Skeleton } from "./ui/skeleton";
-import Image from "next/image";
 import { useAtom } from "jotai";
 import { selectedUserAtom } from "@/context/atom";
 import AllUsers from "./UsersList/AllUsers";
@@ -37,10 +34,11 @@ import ListSelector from "./UsersList/ListSelector";
 const fetchUsersAll = async ({
   pageParam,
 }: {
-  pageParam: number;
+  pageParam: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
 }): Promise<InfiniteUsers> => {
   const usersCollection = collection(firestore, "users");
   let q = query(usersCollection, where("uid", "!=", auth.currentUser!.uid));
+
   if (pageParam) {
     q = query(q, startAfter(pageParam));
   }
@@ -62,21 +60,6 @@ const fetchUsersAll = async ({
   }));
   return { usersData, lastDoc };
 };
-
-const addFriend = async ({
-  selectedUserId,
-  loggedInUserId,
-}: {
-  selectedUserId: string;
-  loggedInUserId: string;
-}) => {
-  await updateDoc(doc(firestore, "users", loggedInUserId), {
-    friends: arrayUnion(selectedUserId),
-  });
-
-  return null;
-};
-
 const fetchUsersFriends = async ({
   pageParam,
   userFriendsList,
@@ -115,8 +98,21 @@ const fetchUsersFriends = async ({
   }));
   return { usersData, lastDoc };
 };
+const addFriend = async ({
+  selectedUserId,
+  loggedInUserId,
+}: {
+  selectedUserId: string;
+  loggedInUserId: string;
+}) => {
+  await updateDoc(doc(firestore, "users", loggedInUserId), {
+    friends: arrayUnion(selectedUserId),
+  });
 
-function FriendsListSection({ user }: { user: User }) {
+  return null;
+};
+
+function UsersSection({ user }: { user: User }) {
   const {
     data: usersAllPages,
     fetchNextPage: fetchNextUsersAllPage,
@@ -124,7 +120,7 @@ function FriendsListSection({ user }: { user: User }) {
     isFetchingNextPage: isFetchingNextUsersAllPage,
   } = useInfiniteQuery({
     queryKey: ["usersAll"],
-    queryFn: fetchUsersAll,
+    queryFn: ({ pageParam }) => fetchUsersAll({ pageParam }),
     initialPageParam: null,
     getNextPageParam: (lastPage: InfiniteUsers) => {
       if (lastPage && lastPage.lastDoc) {
@@ -171,9 +167,8 @@ function FriendsListSection({ user }: { user: User }) {
     mutationKey: ["addFriend"],
     mutationFn: ({ selectedUserId }: { selectedUserId: string }) =>
       addFriend({ selectedUserId, loggedInUserId: user.uid }),
-    onSuccess: () => {
-      clientQuery.invalidateQueries({ queryKey: ["user"] });
-      clientQuery.invalidateQueries({ queryKey: ["users"] });
+    onSuccess: async () => {
+      await clientQuery.invalidateQueries({ queryKey: ["user"] });
     },
   });
 
@@ -182,10 +177,7 @@ function FriendsListSection({ user }: { user: User }) {
   const changeCurrentChat = async (selectedUser: User) => {
     if (!user.friends || !user.friends.includes(selectedUser.uid)) {
       addFriendMutation({ selectedUserId: selectedUser.uid });
-      clientQuery.invalidateQueries({ queryKey: ["user"] });
-      clientQuery.invalidateQueries({ queryKey: ["usersFriends"] });
     }
-    clientQuery.invalidateQueries({ queryKey: ["messages"] });
     setSelectedUser(selectedUser);
   };
 
@@ -193,6 +185,10 @@ function FriendsListSection({ user }: { user: User }) {
     changeCurrentChat(selectedUser);
     setSheetIsOpen(false);
   };
+
+  useEffect(() => {
+    clientQuery.invalidateQueries({ queryKey: ["usersFriends"] });
+  }, [clientQuery, user.friends]);
 
   return (
     <div className="w-full sm:max-w-64 p-2 sm:h-full rounded-xl bg-white shadow-sm">
@@ -270,4 +266,4 @@ function FriendsListSection({ user }: { user: User }) {
   );
 }
 
-export default FriendsListSection;
+export default UsersSection;

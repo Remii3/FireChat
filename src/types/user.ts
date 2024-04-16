@@ -9,7 +9,9 @@ export type User = {
   friends: string[];
 };
 export type SidebarTypes = "usersAll" | "usersFriends";
-export type InfiniteUsersPages = InfiniteData<InfiniteUsers, unknown>;
+export type InfiniteUsersPages =
+  | InfiniteData<InfiniteUsers, unknown>
+  | undefined;
 
 export type InfiniteUsers = {
   usersData: User[];

@@ -1,10 +1,11 @@
 "use client";
 
 import { auth, firestore } from "@/lib/firebase";
-import React, { FormEvent, useEffect, useRef, useState } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
+import React, { FormEvent, useEffect, useState } from "react";
 import SignIn from "@/app/signIn/page";
 import {
+  DocumentData,
+  QueryDocumentSnapshot,
   addDoc,
   collection,
   getDocs,
@@ -17,13 +18,18 @@ import {
   where,
 } from "firebase/firestore";
 import Message from "@/components/Message";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage } from "./ui/avatar";
-import { useAtom } from "jotai";
-import { selectedUserAtom } from "@/context/atom";
+import { useInView } from "react-intersection-observer";
+import { InfiniteMessages } from "@/types/types";
+import { User } from "@/types/user";
 
 const addMessage = async ({
   newMessageText,
@@ -44,48 +50,84 @@ const addMessage = async ({
       photoURL,
       senderId: userId,
       recipientId: recipientId,
+      unread: true,
     });
   } catch (error) {
     console.log(error);
   }
 };
 
-function ChatWindow() {
-  const [selectedUser] = useAtom(selectedUserAtom);
-  const [user] = useAuthState(auth);
-  const endOfMessagesRef = useRef<HTMLDivElement>(null);
+const fetchMessages = async ({
+  loggedInUserId,
+  selectedUserId,
+  pageParam,
+}: {
+  loggedInUserId: string;
+  selectedUserId: string;
+  pageParam: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
+}): Promise<InfiniteMessages> => {
+  const messagesRef = collection(firestore, "messages");
+  let q = query(
+    messagesRef,
+    where("senderId", "in", [loggedInUserId, selectedUserId]),
+    where("recipientId", "in", [loggedInUserId, selectedUserId]),
+    orderBy("createdAt", "desc")
+  );
+
+  if (pageParam) {
+    q = query(q, startAfter(pageParam));
+  }
+  q = query(q, limit(10));
+  const messagesSnapshot = await getDocs(q);
+
+  const lastDoc =
+    messagesSnapshot.docs.length > 0
+      ? messagesSnapshot.docs[messagesSnapshot.docs.length - 1]
+      : null;
+  const messagesData = messagesSnapshot.docs.map((msgSnap) => ({
+    text: msgSnap.data().text,
+    photoURL: msgSnap.data().photoURL,
+    recipientId: msgSnap.data().recipientId,
+    senderId: msgSnap.data().senderId,
+    createdAt: msgSnap.data().createdAt,
+    uid: msgSnap.id,
+    unread: msgSnap.data().unread,
+  }));
+
+  return { messagesData, lastDoc };
+};
+
+function ChatWindow({
+  user,
+  selectedUser,
+}: {
+  user: User;
+  selectedUser: User;
+}) {
   const [newMessage, setNewMessage] = useState("");
   const queryClient = useQueryClient();
-  const observer = useRef<IntersectionObserver>();
-  const [messages, setMessages] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (selectedUser) {
-      const messagesRef = collection(firestore, "messages");
-      const q = query(
-        messagesRef,
-        where("senderId", "in", [user?.uid, selectedUser?.uid]),
-        where("recipientId", "in", [user?.uid, selectedUser?.uid]),
-        orderBy("createdAt", "desc"),
-        limit(25)
-      );
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const newMessages = [];
-        let newLastVisible = null;
-        snapshot.forEach((doc) => {
-          newMessages.push({ id: doc.id, ...doc.data() });
-          newLastVisible = doc;
-        });
-        setMessages(newMessages.reverse());
-        setLastVisible(newLastVisible);
-      });
-
-      return () => unsubscribe();
-    }
-  }, [selectedUser, user]);
+  const { inView, ref } = useInView();
+  const {
+    data: messagesPages,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["messages"],
+    queryFn: ({ pageParam }) =>
+      fetchMessages({
+        pageParam,
+        loggedInUserId: user.uid,
+        selectedUserId: selectedUser.uid,
+      }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage: InfiniteMessages) => {
+      if (lastPage && lastPage.lastDoc) {
+        return lastPage.lastDoc;
+      }
+      return null;
+    },
+  });
 
   const { mutate, status: messageStatus } = useMutation({
     mutationFn: addMessage,
@@ -96,40 +138,22 @@ function ChatWindow() {
   });
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, messageStatus]);
+    queryClient.invalidateQueries({ queryKey: ["messages"] });
+  }, [queryClient, selectedUser]);
 
-  const fetchMoreMessages = async () => {
-    if (lastVisible && !loading) {
-      setLoading(true);
-      const messagesRef = collection(firestore, "messages");
-      const q = query(
-        messagesRef,
-        orderBy("createdAt", "desc"),
-        startAfter(lastVisible),
-        limit(25)
-      );
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(firestore, "posts"), () => {
+      queryClient.invalidateQueries({ queryKey: ["messages"] });
+    });
 
-      const snapshot = await getDocs(q);
-      const newMessages = [];
-      let newLastVisible = null;
-      snapshot.forEach((doc) => {
-        newMessages.push({ id: doc.id, ...doc.data() });
-        newLastVisible = doc;
-      });
-      newMessages.reverse();
-      setMessages((prevMessages) => [...newMessages, ...prevMessages]);
-      setLastVisible(newLastVisible);
-      setLoading(false);
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
     }
-  };
-
-  const handleScroll = (event) => {
-    const { scrollTop } = event.currentTarget;
-    if (scrollTop === 0) {
-      fetchMoreMessages();
-    }
-  };
+  }, [inView, hasNextPage, fetchNextPage]);
 
   if (!user) {
     return <SignIn />;
@@ -144,7 +168,7 @@ function ChatWindow() {
       recipientId: selectedUser.uid,
     });
   };
-  console.log(selectedUser);
+
   return (
     <div className="w-full rounded-xl flex flex-col justify-between h-full bg-white shadow-sm">
       <div>
@@ -161,17 +185,23 @@ function ChatWindow() {
         )}
       </div>
       <div className="pb-4 relative flex flex-col overflow-hidden">
-        <div
-          onScroll={handleScroll}
-          className="relative flex flex-col flex-grow overflow-y-auto px-4 py-4"
-        >
+        <div className="relative flex flex-col-reverse flex-grow overflow-y-auto px-4 py-4">
           {!selectedUser && <p>Select a user to start chatting</p>}
-          {selectedUser &&
-            messages &&
-            messages
-              .reverse()
-              .map((msg) => <Message key={msg.id} message={msg} />)}
-          <div ref={endOfMessagesRef}></div>
+          {messagesPages &&
+            messagesPages.pages.map((messages) =>
+              messages.messagesData.map((message, index) => (
+                <Message
+                  key={message.uid}
+                  lastItemRef={
+                    messages.messagesData.length === index + 1 ? ref : undefined
+                  }
+                  message={message}
+                />
+              ))
+            )}
+          {isFetchingNextPage && !messagesPages && (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          )}
         </div>
 
         <form

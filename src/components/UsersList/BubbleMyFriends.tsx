@@ -1,11 +1,13 @@
-import React from "react";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Menu } from "lucide-react";
-import UserCard from "./UserCard";
-import { InfiniteUsers, User } from "@/types/user";
+import { User } from "@/types/user";
 
-function BubbleMyFriends({ users }: { users: any[] }) {
+function BubbleMyFriends({
+  users,
+  clickHandler,
+}: {
+  users: User[] | undefined;
+  clickHandler: (selectedUser: User) => void;
+}) {
   return (
     <div>
       {users && (
@@ -15,6 +17,7 @@ function BubbleMyFriends({ users }: { users: any[] }) {
               <button
                 key={user.id}
                 type="button"
+                onClick={() => clickHandler(user)}
                 className="last:mr-4"
                 aria-label="Select user to chat with"
               >
