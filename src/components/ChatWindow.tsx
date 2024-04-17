@@ -7,7 +7,9 @@ import {
   DocumentData,
   QueryDocumentSnapshot,
   addDoc,
+  arrayUnion,
   collection,
+  doc,
   getDocs,
   limit,
   onSnapshot,
@@ -15,6 +17,7 @@ import {
   query,
   serverTimestamp,
   startAfter,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import Message from "@/components/Message";
@@ -49,6 +52,9 @@ const addMessage = async ({
       senderId: uid,
       recipientId: recipientId,
       unread: true,
+    });
+    await updateDoc(doc(firestore, "users", recipientId), {
+      friends: arrayUnion(uid)
     });
   } catch (error) {
     console.log(error);

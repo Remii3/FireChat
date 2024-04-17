@@ -16,7 +16,7 @@ function ListSelector({ selectedSidebar, changeSelectedSidebar }: PropsTypes) {
           selectedSidebar === "usersFriends" && "bg-muted"
         } rounded-r-none w-full`}
       >
-        My friends
+        My contacts
       </Button>
       <Button
         onClick={() => changeSelectedSidebar("usersAll")}

@@ -200,7 +200,7 @@ function UsersSection({ user }: { user: User }) {
           changeSelectedSidebar={changeSelectedSidebar}
         />
 
-        <div className="flex flex-col gap-2 items-start justify-start">
+        <div className="flex flex-col gap-2 items-stretch justify-start">
           {selectedSidebar === "usersFriends" ? (
             <FriendsUsers
               fetchNextPage={fetchNextUsersFriendsPage}
@@ -233,7 +233,7 @@ function UsersSection({ user }: { user: User }) {
             </SheetTrigger>
 
             <SheetContent side={"left"}>
-              <div className="flex flex-col gap-3 items-start justify-start pt-6 pr-6">
+              <div className="flex flex-col gap-3 items-stretch justify-start pt-6 pr-6">
                 <ListSelector
                   selectedSidebar={selectedSidebar}
                   changeSelectedSidebar={changeSelectedSidebar}
