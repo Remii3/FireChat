@@ -8,8 +8,9 @@ function Message({
   message: DocumentData;
   lastItemRef?: (node?: Element | null | undefined) => void;
 }) {
-  const { text, uid } = message;
-  const authorMessage = uid === auth.currentUser!.uid ? "author" : "received";
+  const { text, senderId } = message;
+  const authorMessage =
+    senderId === auth.currentUser!.uid ? "author" : "received";
 
   return (
     <div

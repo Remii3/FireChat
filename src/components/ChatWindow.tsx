@@ -33,22 +33,19 @@ import { User } from "@/types/user";
 
 const addMessage = async ({
   newMessageText,
-  userId,
   recipientId,
 }: {
   newMessageText: string;
-  userId: string;
   recipientId: string;
 }) => {
-  if (!auth.currentUser || !recipientId || !userId) return;
+  if (!auth.currentUser || !recipientId) return;
   const { uid, photoURL } = auth.currentUser;
   try {
     await addDoc(collection(firestore, "messages"), {
       text: newMessageText,
       createdAt: serverTimestamp(),
-      uid,
       photoURL,
-      senderId: userId,
+      senderId: uid,
       recipientId: recipientId,
       unread: true,
     });
@@ -164,7 +161,6 @@ function ChatWindow({
 
     mutate({
       newMessageText: newMessage,
-      userId: user.uid,
       recipientId: selectedUser.uid,
     });
   };
