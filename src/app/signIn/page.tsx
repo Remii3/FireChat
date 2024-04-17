@@ -17,6 +17,7 @@ function SignInPage() {
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
+        isOnline: true,
       },
       {
         merge: true,

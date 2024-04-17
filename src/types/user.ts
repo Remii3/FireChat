@@ -7,6 +7,7 @@ export type User = {
   displayName: string;
   photoURL: string;
   friends: string[];
+  isOnline: boolean;
 };
 export type SidebarTypes = "usersAll" | "usersFriends";
 export type InfiniteUsersPages =

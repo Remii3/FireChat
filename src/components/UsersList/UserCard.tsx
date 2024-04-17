@@ -1,6 +1,7 @@
 import { Button } from "../ui/button";
 import Image from "next/image";
 import { User, UsersListTypes } from "@/types/user";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 type UserCardType = {
   lastItemRef?: (node?: Element | null | undefined) => void;
@@ -8,6 +9,7 @@ type UserCardType = {
 } & Pick<UsersListTypes, "clickHandler">;
 
 function UserCard({ user, lastItemRef, clickHandler }: UserCardType) {
+  console.log(user.isOnline);
   return (
     <Button
       className="h-auto w-full justify-start gap-3 font-normal"
