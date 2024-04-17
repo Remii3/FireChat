@@ -57,6 +57,7 @@ const fetchUsersAll = async ({
     photoURL: userSnap.data().photoURL.trim().replace(/^"|"$/g, ""),
     uid: userSnap.data().uid,
     friends: userSnap.data().friends,
+    isOnline: userSnap.data().isOnline,
   }));
   return { usersData, lastDoc };
 };
@@ -95,6 +96,7 @@ const fetchUsersFriends = async ({
     photoURL: userSnap.data().photoURL.trim().replace(/^"|"$/g, ""),
     uid: userSnap.data().uid,
     friends: userSnap.data().friends,
+    isOnline: userSnap.data().isOnline,
   }));
   return { usersData, lastDoc };
 };

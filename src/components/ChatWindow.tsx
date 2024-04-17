@@ -30,6 +30,7 @@ import { Avatar, AvatarImage } from "./ui/avatar";
 import { useInView } from "react-intersection-observer";
 import { InfiniteMessages } from "@/types/types";
 import { User } from "@/types/user";
+import StatusIcon from "./UsersList/StatusIcon";
 
 const addMessage = async ({
   newMessageText,
@@ -177,6 +178,7 @@ function ChatWindow({
               />
             </Avatar>
             <h4 className="text-2xl font-medium">{selectedUser.displayName}</h4>
+            <StatusIcon isOnline={selectedUser.isOnline} />
           </div>
         )}
       </div>
