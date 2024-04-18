@@ -17,6 +17,7 @@ const useSignIn = () => {
           displayName: result.user.displayName,
           photoURL: result.user.photoURL,
           isOnline: true,
+          latestMessages: [],
         },
         {
           merge: true,

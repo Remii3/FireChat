@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { useQueryClient } from "@tanstack/react-query";
 import { SidebarTypes, User } from "@/types/user";
 import { Avatar } from "./ui/avatar";
 import { Menu } from "lucide-react";
@@ -13,9 +12,10 @@ import BubbleMyFriends from "./UsersList/BubbleMyFriends";
 import ListSelector from "./UsersList/ListSelector";
 import {
   useAddUserFriend,
-  useFetchUsers,
+  useFetchAllUsers,
   useFetchUsersFriends,
 } from "@/hooks/useUsers";
+import { useLatestMessage } from "@/hooks/useMessages";
 
 function UsersSection({ user }: { user: User }) {
   const {
@@ -23,19 +23,17 @@ function UsersSection({ user }: { user: User }) {
     fetchNextPage: fetchNextUsersAllPage,
     hasNextPage: hasNextUsersAllPage,
     isFetchingNextPage: isFetchingNextUsersAllPage,
-  } = useFetchUsers();
+  } = useFetchAllUsers();
   const {
     data: usersFriendsPages,
     fetchNextPage: fetchNextUsersFriendsPage,
     hasNextPage: hasNextUsersFriendsPage,
     isFetchingNextPage: isFetchingNextUsersFriendsPage,
-  } = useFetchUsersFriends(user);
-
+  } = useFetchUsersFriends({ user });
   const [selectedSidebar, setSelectedSidebar] = useState<
     "usersFriends" | "usersAll"
   >("usersFriends");
-  const clientQuery = useQueryClient();
-
+  const { markAsRead } = useLatestMessage();
   const [sheetIsOpen, setSheetIsOpen] = useState(false);
 
   const changeSelectedSidebar = (selected: SidebarTypes) => {
@@ -50,10 +48,11 @@ function UsersSection({ user }: { user: User }) {
 
   const [_, setSelectedUser] = useAtom(selectedUserAtom);
 
-  const changeCurrentChat = async (selectedUser: User) => {
+  const changeCurrentChat = (selectedUser: User) => {
     if (!user.friends || !user.friends.includes(selectedUser.uid)) {
       addFriendMutation({ selectedUserId: selectedUser.uid });
     }
+    markAsRead({ userId: user.uid, senderId: selectedUser.uid });
     setSelectedUser(selectedUser);
   };
 
@@ -61,10 +60,6 @@ function UsersSection({ user }: { user: User }) {
     changeCurrentChat(selectedUser);
     setSheetIsOpen(false);
   };
-
-  useEffect(() => {
-    clientQuery.invalidateQueries({ queryKey: ["usersFriends"] });
-  }, [clientQuery, user.friends]);
 
   return (
     <div className="w-full sm:max-w-64 p-2 sm:h-full rounded-xl bg-white shadow-sm">

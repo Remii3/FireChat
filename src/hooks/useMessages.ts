@@ -1,5 +1,6 @@
 import { auth, firestore } from "@/lib/firebase";
 import { InfiniteMessages } from "@/types/types";
+import { User } from "@/types/user";
 import {
   useInfiniteQuery,
   useMutation,
@@ -12,6 +13,7 @@ import {
   arrayUnion,
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -21,6 +23,22 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+
+const createMessagesQuery = ({
+  loggedInUserId,
+  selectedUserId,
+}: {
+  loggedInUserId: string;
+  selectedUserId: string;
+}) => {
+  const messagesRef = collection(firestore, "messages");
+  return query(
+    messagesRef,
+    where("senderId", "in", [loggedInUserId, selectedUserId]),
+    where("recipientId", "in", [loggedInUserId, selectedUserId]),
+    orderBy("createdAt", "desc")
+  );
+};
 
 const addMessage = async ({
   newMessageText,
@@ -42,9 +60,14 @@ const addMessage = async ({
     });
     await updateDoc(doc(firestore, "users", recipientId), {
       friends: arrayUnion(uid),
+      [`latestMessages.${uid}`]: {
+        senderId: uid,
+        unread: true,
+        text: newMessageText,
+      },
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 };
 
@@ -57,18 +80,12 @@ const fetchMessages = async ({
   selectedUserId: string;
   pageParam: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
 }): Promise<InfiniteMessages> => {
-  const messagesRef = collection(firestore, "messages");
-  let q = query(
-    messagesRef,
-    where("senderId", "in", [loggedInUserId, selectedUserId]),
-    where("recipientId", "in", [loggedInUserId, selectedUserId]),
-    orderBy("createdAt", "desc")
-  );
-
+  let q = createMessagesQuery({ loggedInUserId, selectedUserId });
   if (pageParam) {
     q = query(q, startAfter(pageParam));
   }
   q = query(q, limit(10));
+
   const messagesSnapshot = await getDocs(q);
 
   const lastDoc =
@@ -96,9 +113,8 @@ export const useAddMessage = ({
   newMessageText: string;
 }) => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationKey: ["addMEssage"],
+    mutationKey: ["addMessage"],
     mutationFn: () => addMessage({ recipientId, newMessageText }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["messages"] });
@@ -129,4 +145,30 @@ export const useGetMessages = ({
       return null;
     },
   });
+};
+
+export const useLatestMessage = () => {
+  const markAsRead = async ({
+    userId,
+    senderId,
+  }: {
+    userId: string;
+    senderId: string;
+  }) => {
+    const userRef = doc(firestore, "users", userId);
+
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User;
+
+      if (userData.latestMessages[senderId]?.unread) {
+        userData.latestMessages[senderId].unread = false;
+        await updateDoc(userRef, {
+          latestMessages: userData.latestMessages,
+        });
+      }
+    }
+  };
+  return { markAsRead };
 };

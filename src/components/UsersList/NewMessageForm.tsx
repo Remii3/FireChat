@@ -1,14 +1,14 @@
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useAddMessage } from "@/hooks/useMessages";
 import { User } from "@/types/user";
 
 const NewMessageForm = ({ selectedUser }: { selectedUser: User }) => {
   const [newMessage, setNewMessage] = useState("");
 
-  const { mutate, status: messageStatus } = useAddMessage({
+  const { mutate, isPending, isSuccess } = useAddMessage({
     newMessageText: newMessage,
     recipientId: selectedUser.uid,
   });
@@ -17,8 +17,12 @@ const NewMessageForm = ({ selectedUser }: { selectedUser: User }) => {
     e.preventDefault();
 
     mutate();
-    setNewMessage("");
   };
+
+  useEffect(() => {
+    setNewMessage("");
+  }, [isSuccess]);
+
   return (
     <form onSubmit={sendMessage} className="flex space-x-2 mt-4 basis-10 px-4">
       <Input
@@ -31,7 +35,11 @@ const NewMessageForm = ({ selectedUser }: { selectedUser: User }) => {
         disabled={newMessage.trim().length <= 0}
         className="transition"
       >
-        <Send className="h-4 w-4" />
+        {isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin"></Loader2>
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
       </Button>
     </form>
   );

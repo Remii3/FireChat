@@ -1,8 +1,7 @@
 "use client";
 
 import { firestore } from "@/lib/firebase";
-import React, { useEffect } from "react";
-import SignIn from "@/app/signIn/page";
+import React, { useEffect, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import Message from "@/components/Message";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,14 +12,12 @@ import { User } from "@/types/user";
 import StatusIcon from "./UsersList/StatusIcon";
 import { useGetMessages } from "@/hooks/useMessages";
 import NewMessageForm from "./UsersList/NewMessageForm";
+import { useAtom } from "jotai";
+import { loggedInUserAtom, selectedUserAtom } from "@/context/atom";
 
-function ChatWindow({
-  user,
-  selectedUser,
-}: {
-  user: User;
-  selectedUser: User;
-}) {
+function ChatWindow() {
+  const [selectedUser] = useAtom(selectedUserAtom);
+  const [loggedInUser] = useAtom(loggedInUserAtom);
   const queryClient = useQueryClient();
   const { inView, ref } = useInView();
   const {
@@ -29,31 +26,29 @@ function ChatWindow({
     isFetchingNextPage,
     fetchNextPage,
   } = useGetMessages({
-    loggedInUserId: user.uid,
-    selectedUserId: selectedUser.uid,
+    loggedInUserId: loggedInUser?.uid || "",
+    selectedUserId: selectedUser?.uid || "",
   });
-
+  const [isRefetching, setIsRefetching] = useState(true);
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["messages"] });
+    if (selectedUser) {
+      setIsRefetching(false);
+      const unsubscribe = onSnapshot(
+        collection(firestore, "messages"),
+        async () => {
+          await queryClient.invalidateQueries({ queryKey: ["messages"] });
+          setIsRefetching(true);
+        }
+      );
+      return () => unsubscribe();
+    }
   }, [queryClient, selectedUser]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(firestore, "posts"), () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-    });
-
-    return () => unsubscribe();
-  }, [queryClient]);
-
-  useEffect(() => {
-    if (inView && hasNextPage) {
+    if (inView && hasNextPage && isRefetching) {
       fetchNextPage();
     }
-  }, [inView, hasNextPage, fetchNextPage]);
-
-  if (!user) {
-    return <SignIn />;
-  }
+  }, [inView, hasNextPage, fetchNextPage, isRefetching]);
 
   return (
     <div className="w-full rounded-xl flex flex-col justify-between h-full bg-white shadow-sm">
@@ -90,7 +85,7 @@ function ChatWindow({
             <Loader2 className="h-6 w-6 animate-spin" />
           )}
         </div>
-        <NewMessageForm selectedUser={selectedUser} />
+        <NewMessageForm selectedUser={selectedUser!} />
       </div>
     </div>
   );

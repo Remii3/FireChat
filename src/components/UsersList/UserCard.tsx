@@ -2,6 +2,8 @@ import { Button } from "../ui/button";
 import Image from "next/image";
 import { User, UsersListTypes } from "@/types/user";
 import StatusIcon from "./StatusIcon";
+import { useAtom } from "jotai";
+import { loggedInUserAtom } from "@/context/atom";
 
 type UserCardType = {
   lastItemRef?: (node?: Element | null | undefined) => void;
@@ -9,6 +11,8 @@ type UserCardType = {
 } & Pick<UsersListTypes, "clickHandler">;
 
 function UserCard({ user, lastItemRef, clickHandler }: UserCardType) {
+  const [loggedInUser] = useAtom(loggedInUserAtom);
+  if (!loggedInUser) return null;
   return (
     <Button
       className="h-auto w-full justify-between gap-3 font-normal"
@@ -25,9 +29,21 @@ function UserCard({ user, lastItemRef, clickHandler }: UserCardType) {
           height={40}
           width={40}
         />
-        <span>{user.displayName}</span>
+        <div className="flex flex-col gap-1 items-start">
+          <span>{user.displayName}</span>
+          {loggedInUser.latestMessages[user.uid] && (
+            <span
+              className={`${
+                loggedInUser.latestMessages[user.uid].unread
+                  ? "font-medium"
+                  : "font-normal"
+              } text-xs`}
+            >
+              {loggedInUser.latestMessages[user.uid].text}
+            </span>
+          )}
+        </div>
       </div>
-
       <StatusIcon isOnline={user.isOnline} />
     </Button>
   );

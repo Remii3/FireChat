@@ -14,7 +14,6 @@ function Message({
 
   return (
     <div
-      data-testid={lastItemRef && lastItemRef}
       ref={lastItemRef && lastItemRef}
       className={`flex mb-4 ${
         authorMessage === "received" ? "justify-start" : "justify-end"

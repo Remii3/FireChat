@@ -7,11 +7,12 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { useAtom } from "jotai";
-import { selectedUserAtom } from "@/context/atom";
+import { loggedInUserAtom, selectedUserAtom } from "@/context/atom";
 import { doc, updateDoc } from "firebase/firestore";
 
 function Navbar() {
   const [_, setSelectedUser] = useAtom(selectedUserAtom);
+  const [loggedInUser] = useAtom(loggedInUserAtom);
   const clientQuery = useQueryClient();
 
   const signOutHandler = async (): Promise<void> => {
@@ -25,7 +26,7 @@ function Navbar() {
   };
 
   const mainMenuHandler = () => {
-    if (!auth.currentUser) return;
+    if (!loggedInUser) return;
     setSelectedUser(null);
     clientQuery.invalidateQueries({ queryKey: ["messages"] });
   };
@@ -38,7 +39,7 @@ function Navbar() {
             <h1 className="text-2xl font-bold">Chat App</h1>
           </Link>
         </div>
-        {auth.currentUser && (
+        {loggedInUser && (
           <Button
             variant={"outline"}
             className="space-x-2"

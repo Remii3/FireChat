@@ -15,7 +15,7 @@ function BubbleMyFriends({
           <div className="overflow-x-auto space-x-4 flex">
             {users.map((user) => (
               <button
-                key={user.id}
+                key={user.uid}
                 type="button"
                 onClick={() => clickHandler(user)}
                 className="last:mr-4"
