@@ -1,105 +1,18 @@
 "use client";
 
-import { auth, firestore } from "@/lib/firebase";
-import React, { FormEvent, useEffect, useState } from "react";
+import { firestore } from "@/lib/firebase";
+import React, { useEffect } from "react";
 import SignIn from "@/app/signIn/page";
-import {
-  DocumentData,
-  QueryDocumentSnapshot,
-  addDoc,
-  arrayUnion,
-  collection,
-  doc,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  startAfter,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import Message from "@/components/Message";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Loader2, Send } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { useInView } from "react-intersection-observer";
-import { InfiniteMessages } from "@/types/types";
 import { User } from "@/types/user";
 import StatusIcon from "./UsersList/StatusIcon";
-
-const addMessage = async ({
-  newMessageText,
-  recipientId,
-}: {
-  newMessageText: string;
-  recipientId: string;
-}) => {
-  if (!auth.currentUser || !recipientId) return;
-  const { uid, photoURL } = auth.currentUser;
-  try {
-    await addDoc(collection(firestore, "messages"), {
-      text: newMessageText,
-      createdAt: serverTimestamp(),
-      photoURL,
-      senderId: uid,
-      recipientId: recipientId,
-      unread: true,
-    });
-    await updateDoc(doc(firestore, "users", recipientId), {
-      friends: arrayUnion(uid)
-    });
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const fetchMessages = async ({
-  loggedInUserId,
-  selectedUserId,
-  pageParam,
-}: {
-  loggedInUserId: string;
-  selectedUserId: string;
-  pageParam: QueryDocumentSnapshot<DocumentData, DocumentData> | null;
-}): Promise<InfiniteMessages> => {
-  const messagesRef = collection(firestore, "messages");
-  let q = query(
-    messagesRef,
-    where("senderId", "in", [loggedInUserId, selectedUserId]),
-    where("recipientId", "in", [loggedInUserId, selectedUserId]),
-    orderBy("createdAt", "desc")
-  );
-
-  if (pageParam) {
-    q = query(q, startAfter(pageParam));
-  }
-  q = query(q, limit(10));
-  const messagesSnapshot = await getDocs(q);
-
-  const lastDoc =
-    messagesSnapshot.docs.length > 0
-      ? messagesSnapshot.docs[messagesSnapshot.docs.length - 1]
-      : null;
-  const messagesData = messagesSnapshot.docs.map((msgSnap) => ({
-    text: msgSnap.data().text,
-    photoURL: msgSnap.data().photoURL,
-    recipientId: msgSnap.data().recipientId,
-    senderId: msgSnap.data().senderId,
-    createdAt: msgSnap.data().createdAt,
-    uid: msgSnap.id,
-    unread: msgSnap.data().unread,
-  }));
-
-  return { messagesData, lastDoc };
-};
+import { useGetMessages } from "@/hooks/useMessages";
+import NewMessageForm from "./UsersList/NewMessageForm";
 
 function ChatWindow({
   user,
@@ -108,7 +21,6 @@ function ChatWindow({
   user: User;
   selectedUser: User;
 }) {
-  const [newMessage, setNewMessage] = useState("");
   const queryClient = useQueryClient();
   const { inView, ref } = useInView();
   const {
@@ -116,29 +28,9 @@ function ChatWindow({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["messages"],
-    queryFn: ({ pageParam }) =>
-      fetchMessages({
-        pageParam,
-        loggedInUserId: user.uid,
-        selectedUserId: selectedUser.uid,
-      }),
-    initialPageParam: null,
-    getNextPageParam: (lastPage: InfiniteMessages) => {
-      if (lastPage && lastPage.lastDoc) {
-        return lastPage.lastDoc;
-      }
-      return null;
-    },
-  });
-
-  const { mutate, status: messageStatus } = useMutation({
-    mutationFn: addMessage,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["messages"] });
-      setNewMessage("");
-    },
+  } = useGetMessages({
+    loggedInUserId: user.uid,
+    selectedUserId: selectedUser.uid,
   });
 
   useEffect(() => {
@@ -162,15 +54,6 @@ function ChatWindow({
   if (!user) {
     return <SignIn />;
   }
-  const sendMessage = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-
-    mutate({
-      newMessageText: newMessage,
-      recipientId: selectedUser.uid,
-    });
-  };
 
   return (
     <div className="w-full rounded-xl flex flex-col justify-between h-full bg-white shadow-sm">
@@ -207,24 +90,7 @@ function ChatWindow({
             <Loader2 className="h-6 w-6 animate-spin" />
           )}
         </div>
-
-        <form
-          onSubmit={sendMessage}
-          className="flex space-x-2 mt-4 basis-10 px-4"
-        >
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
-          <Button
-            variant={"default"}
-            type="submit"
-            disabled={newMessage.trim().length <= 0}
-            className="transition"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <NewMessageForm selectedUser={selectedUser} />
       </div>
     </div>
   );

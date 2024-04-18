@@ -1,14 +1,14 @@
-import { UsersListTypes } from "@/types/user";
-import { Loader2 } from "lucide-react";
-import React, { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { UsersListTypes } from "@/types/user";
 import UserCard from "./UserCard";
 
-function FriendsUsers({
-  fetchNextPage,
+function AllUsers({
+  usersPages,
   hasNextPage,
   isFetchingNextPage,
-  usersPages,
+  fetchNextPage,
   clickHandler,
 }: UsersListTypes) {
   const { ref, inView } = useInView();
@@ -23,22 +23,26 @@ function FriendsUsers({
     <div>
       {usersPages &&
         usersPages.pages.map((users) =>
-          users.usersData.map((user, id) => {
+          users.usersData.map((user, index) => {
             return (
               <UserCard
-                key={user.id}
+                key={user.uid}
                 user={user}
                 clickHandler={clickHandler}
                 lastItemRef={
-                  users.usersData.length === id + 1 ? ref : undefined
+                  users.usersData.length === index + 1 ? ref : undefined
                 }
               />
             );
           })
         )}
-      {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin" />}
+      {isFetchingNextPage && (
+        <div className="w-full flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      )}
     </div>
   );
 }
 
-export default FriendsUsers;
+export default AllUsers;
