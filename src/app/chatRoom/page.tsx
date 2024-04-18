@@ -1,36 +1,39 @@
 import ChatWindow from "@/components/ChatWindow";
 import UsersSection from "@/components/UsersSection";
 import { selectedUserAtom } from "@/context/atom";
-import { auth, firestore } from "@/lib/firebase";
-import { User } from "@/types/user";
-import { useQuery } from "@tanstack/react-query";
-import { doc, getDoc } from "firebase/firestore";
+import { useFetchUserData } from "@/hooks/useUserData";
+import { auth } from "@/lib/firebase";
 import { useAtom } from "jotai";
+import { Loader2 } from "lucide-react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import SignInPage from "../signIn/page";
+import { FC } from "react";
 
-const fetchUserData = async (): Promise<null | User> => {
-  if (!auth.currentUser?.uid) return null;
-  const userDoc = doc(firestore, "users", auth.currentUser.uid);
-  const userSnapShot = await getDoc(userDoc);
-  if (!userSnapShot.exists()) return null;
-
-  return userSnapShot.data() as User;
-};
-
-function ChatPage() {
+const ChatPage: FC = () => {
   const [selectedUser] = useAtom(selectedUserAtom);
+  const [userAuth, userAuthLoading, userAuthError] = useAuthState(auth);
+  const {
+    data: userData,
+    error: userDataError,
+    isLoading: userDataLoading,
+  } = useFetchUserData(auth.currentUser?.uid);
 
-  const { data: user } = useQuery({
-    queryKey: ["user", auth.currentUser?.uid],
-    queryFn: () => fetchUserData(),
-    enabled: !!auth.currentUser,
-  });
+  if (userDataLoading || userAuthLoading) {
+    return <Loader2 className="h-6 w-6 animate-spin" />;
+  }
+
+  if (userDataError || userAuthError)
+    return <div>Error: {userDataError?.message || userAuthError?.message}</div>;
+
+  if (!userAuthLoading && !userAuth) return <SignInPage />;
+
   return (
     <div className="w-full flex flex-col sm:flex-row sm:items-center h-[calc(100vh-64px-32px)] sm:h-[calc(100vh-80px)] max-w-screen-xl mx-auto gap-4 px-2 sm:gap-8 pt-4 pb-4 sm:pb-16">
-      {user && (
+      {userData && (
         <>
-          <UsersSection user={user} />
+          <UsersSection user={userData} />
           {selectedUser ? (
-            <ChatWindow user={user} selectedUser={selectedUser} />
+            <ChatWindow user={userData} selectedUser={selectedUser} />
           ) : (
             <div className="w-full rounded-xl flex justify-center items-center h-full bg-white shadow-sm">
               <div className="text-xl">Select a user</div>
@@ -40,6 +43,6 @@ function ChatPage() {
       )}
     </div>
   );
-}
+};
 
 export default ChatPage;

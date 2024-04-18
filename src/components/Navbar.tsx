@@ -8,18 +8,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { useAtom } from "jotai";
 import { selectedUserAtom } from "@/context/atom";
-import { User } from "firebase/auth";
-import { onDisconnect } from "firebase/database";
-import { collection, doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 
 function Navbar() {
   const [_, setSelectedUser] = useAtom(selectedUserAtom);
   const clientQuery = useQueryClient();
 
-  const signOutHandler = async () => {
-    auth.signOut();
-    const userRef = doc(firestore, "users", auth.currentUser!.uid);
-    await updateDoc(userRef, { isOnline: false });
+  const signOutHandler = async (): Promise<void> => {
+    try {
+      auth.signOut();
+      const userRef = doc(firestore, "users", auth.currentUser!.uid);
+      await updateDoc(userRef, { isOnline: false });
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
   };
 
   const mainMenuHandler = () => {

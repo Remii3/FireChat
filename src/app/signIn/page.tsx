@@ -1,38 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { auth, firestore } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import useSignIn from "@/hooks/useSignIn";
 import React from "react";
 
 function SignInPage() {
-  const signInWithGoogleHandler = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const useRef = doc(firestore, "users", result.user.uid);
-
-    await setDoc(
-      useRef,
-      {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        isOnline: true,
-      },
-      {
-        merge: true,
-      }
-    );
+  const signIn = useSignIn();
+  const handleSignIn = async () => {
+    await signIn();
   };
-
   return (
     <div>
       <h2 className="text-4xl font-semibold mb-4">Welcome to Firechat</h2>
-      <Button
-        className="h-auto"
-        variant={"outline"}
-        onClick={() => signInWithGoogleHandler()}
-      >
+      <Button className="h-auto" variant={"outline"} onClick={handleSignIn}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           x="0px"
