@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import useSignIn from "@/hooks/useSignIn";
 import React from "react";

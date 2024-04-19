@@ -1,3 +1,5 @@
+"use client";
+
 import React, { FormEvent, useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
