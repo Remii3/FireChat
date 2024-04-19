@@ -10,7 +10,7 @@ function SignInPage() {
     await signIn();
   };
   return (
-    <div>
+    <div className="text-center sm:text-left">
       <h2 className="text-4xl font-semibold mb-4">Welcome to Firechat</h2>
       <Button className="h-auto" variant={"outline"} onClick={handleSignIn}>
         <svg

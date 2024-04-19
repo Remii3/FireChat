@@ -127,10 +127,12 @@ function UsersSection({ user }: { user: User }) {
               </div>
             </SheetContent>
           </Sheet>
-          <BubbleMyFriends
-            users={usersFriendsPages?.pages[0].usersData}
-            clickHandler={changeCurrentChat}
-          />
+          <div className="w-full overflow-x-auto">
+            <BubbleMyFriends
+              users={usersFriendsPages?.pages[0].usersData}
+              clickHandler={changeCurrentChat}
+            />
+          </div>
         </div>
       </div>
     </div>

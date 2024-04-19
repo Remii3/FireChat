@@ -54,14 +54,16 @@ function ChatWindow() {
     <div className="w-full rounded-xl flex flex-col justify-between h-full bg-white shadow-sm">
       <div>
         {selectedUser && (
-          <div className="flex items-center px-4 py-4 gap-3 shadow-sm">
-            <Avatar>
+          <div className="flex items-center p-2 sm:p-4 gap-3 shadow-sm">
+            <Avatar className="h-8 w-8 sm:h-12 sm:w-12">
               <AvatarImage
                 src={selectedUser.photoURL}
                 alt={selectedUser.displayName}
               />
             </Avatar>
-            <h4 className="text-2xl font-medium">{selectedUser.displayName}</h4>
+            <h4 className="text-xl sm:text-2xl font-medium">
+              {selectedUser.displayName}
+            </h4>
             <StatusIcon isOnline={selectedUser.isOnline} />
           </div>
         )}

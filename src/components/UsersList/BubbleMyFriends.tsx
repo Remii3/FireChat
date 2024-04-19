@@ -14,7 +14,7 @@ function BubbleMyFriends({
     <div>
       {users && (
         <>
-          <div className="overflow-x-auto space-x-4 flex">
+          <div className="space-x-4 flex">
             {users.map((user) => (
               <button
                 key={user.uid}
