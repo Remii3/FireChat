@@ -5,7 +5,7 @@ import React from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
+import { Flame, LogOut } from "lucide-react";
 import { useAtom } from "jotai";
 import { loggedInUserAtom, selectedUserAtom } from "@/context/atom";
 import { doc, updateDoc } from "firebase/firestore";
@@ -35,8 +35,14 @@ function Navbar() {
     <header className="w-full shadow-sm bg-white/75 backdrop-blur-lg">
       <nav className="max-w-screen-xl py-3 px-2 w-full mx-auto flex items-center justify-between">
         <div>
-          <Link href="/" aria-label="Main menu" onClick={mainMenuHandler}>
-            <h1 className="text-2xl font-bold">Chat App</h1>
+          <Link
+            href="/"
+            aria-label="Main menu"
+            className="flex gap-1 items-center"
+            onClick={mainMenuHandler}
+          >
+            <h1 className="text-2xl font-bold">Firechat</h1>
+            <Flame className="h-6 w-6 text-red-600" />
           </Link>
         </div>
         {loggedInUser && (

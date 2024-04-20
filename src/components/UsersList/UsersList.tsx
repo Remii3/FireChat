@@ -22,7 +22,7 @@ function AllUsers({
   }, [inView, hasNextPage, fetchNextPage]);
 
   return (
-    <div>
+    <div className="flex flex-col flex-grow">
       {usersPages &&
         usersPages.pages.map((users) =>
           users.usersData.map((user, index) => {
